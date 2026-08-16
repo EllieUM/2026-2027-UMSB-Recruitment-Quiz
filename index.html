@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>靈魂樂器小測試</title>
+    <style>
+        /* ===== 全域重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            background: #f0f4f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* ===== 動態背景 Canvas ===== */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(1.5px);   /* 讓圓點更柔和模糊 */
+        }
+
+        /* ===== 語言切換按鈕 ===== */
+        .lang-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 152, 0, 0.2);
+            border-radius: 40px;
+            padding: 8px 18px;
+            color: #1a3a4f;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: inherit;
+            letter-spacing: 0.04em;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        }
+        .lang-switch:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #ff9800;
+            transform: scale(1.04);
+        }
+        .lang-switch:active {
+            transform: scale(0.95);
+        }
+        @media (max-width: 600px) {
+            .lang-switch {
+                top: 12px;
+                right: 12px;
+                padding: 6px 14px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* ===== 主容器 ===== */
+        .app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 640px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 48px;
+            box-shadow: 0 20px 60px rgba(100, 150, 200, 0.12), 0 8px 24px rgba(0, 0, 0, 0.04);
+            padding: 36px 32px 40px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+            max-height: 94vh;
+            overflow-y: auto;
+        }
+
+        .app::-webkit-scrollbar {
+            width: 4px;
+        }
+        .app::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app::-webkit-scrollbar-thumb {
+            background: #ff9800;
+            border-radius: 4px;
+        }
+
+        /* ===== 頁面切換 ===== */
+        .page {
+            display: none;
+            animation: fadeUp 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== 通用元件 ===== */
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #1a3a4f;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a3a4f;
+            line-height: 1.3;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 1.05rem;
+            color: #4a6a7f;
+            line-height: 1.6;
+            font-weight: 400;
+            margin-bottom: 24px;
+        }
+
+        .body-text {
+            font-size: 1rem;
+            color: #2c4a5f;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .highlight-orange {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .q-label {
+            font-size: 0.85rem;
+            color: #7a9aaf;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
+
+        /* ===== 按鈕樣式 ===== */
+        .btn-primary {
+            display: inline-block;
+            background: #ff9800;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 14px 36px;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.25);
+            font-family: inherit;
+            letter-spacing: 0.03em;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 152, 0, 0.35);
+            background: #f57c00;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
+
+        .btn-secondary {
+            background: #e3f2fd;
+            color: #1a3a4f;
+            border: 1px solid #bbdefb;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background: #bbdefb;
+            border-color: #64b5f6;
+        }
+
+        /* ===== 選項卡片 ===== */
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 14px 0 8px;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1.5px solid rgba(100, 180, 240, 0.2);
+            border-radius: 18px;
+            padding: 14px 18px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-weight: 500;
+            color: #1a3a4f;
+            font-size: 0.98rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .option-card:hover {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: #ff9800;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 152, 0, 0.08);
+        }
+
+        .option-card:active {
+            transform: scale(0.97);
+        }
+
+        .option-card .letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e3f2fd;
+            color: #1a3a4f;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .option-card .text {
+            flex: 1;
+        }
+
+        /* ===== 結果頁 ===== */
+        .result-box {
+            background: rgba(255, 248, 235, 0.6);
+            border-radius: 28px;
+            padding: 28px 24px;
+            margin: 14px 0 20px;
+            border-left: 6px solid #ff9800;
+        }
+
+        .result-box .big-icon {
+            font-size: 2.8rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a3a4f;
+            margin-bottom: 2px;
+        }
+
+        .result-sub {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e67e22;
+            margin-bottom: 12px;
+        }
+
+        .result-desc {
+            font-size: 0.95rem;
+            color: #2c4a5f;
+            line-height: 1.7;
+        }
+
+        .result-desc strong {
+            color: #e67e22;
+            font-weight: 700;
+        }
+
+        .result-traits {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-top: 12px;
+        }
+
+        .result-traits .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #7a9aaf;
+            font-weight: 600;
+        }
+
+        .result-traits .value {
+            font-size: 0.98rem;
+            color: #1a3a4f;
+            margin-top: 2px;
+        }
+
+        /* ===== 進度指示器 ===== */
+        .progress-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            gap: 12px;
+        }
+
+        .step-dots {
+            display: flex;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .step-dot {
+            flex: 1;
+            height: 4px;
+            border-radius: 4px;
+            background: #dce8f0;
+            transition: all 0.3s;
+        }
+
+        .step-dot.active {
+            background: #ff9800;
+            height: 6px;
+        }
+
+        .step-dot.done {
+            background: #ffcc80;
+        }
+
+        .q-counter {
+            font-size: 0.8rem;
+            color: #7a9aaf;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* ===== 報名頁 ===== */
+        .action-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        /* 修改：按鈕不伸縮，寬度由內容決定，避免換行後間距異常 */
+        .action-group .btn-primary,
+        .action-group .btn-secondary {
+            flex: 0 0 auto;
+            min-width: 140px;
+            text-align: center;
+        }
+
+        .floating-icon {
+            font-size: 2.4rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        /* ===== 頁腳（含免責聲明） ===== */
+        .footer-note {
+            margin-top: 16px;
+            font-size: 0.75rem;
+            color: #8aaec0;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .footer-note .disclaimer {
+            color: #a0b8ca;
+            font-style: italic;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 480px) {
+            .app {
+                padding: 24px 18px 28px;
+                border-radius: 32px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            h2 {
+                font-size: 1.25rem;
+            }
+            .option-card {
+                padding: 12px 14px;
+                font-size: 0.88rem;
+            }
+            .btn-primary {
+                padding: 12px 28px;
+                font-size: 0.92rem;
+            }
+            .result-box {
+                padding: 20px 16px;
+            }
+            .result-title {
+                font-size: 1.25rem;
+            }
+            .progress-area {
+                flex-wrap: wrap;
+            }
+            .q-counter {
+                font-size: 0.7rem;
+            }
+            .action-group .btn-primary,
+            .action-group .btn-secondary {
+                min-width: 120px;
+                font-size: 0.85rem;
+                padding: 10px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 動態背景 ===== -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- ===== 語言切換 ===== -->
+    <button class="lang-switch" id="langSwitch">🌐 English</button>
+
+    <!-- ===== 主應用 ===== -->
+    <div class="app" id="app">
+
+        <!-- ===== 封面 ===== -->
+        <div class="page active" id="page-cover">
+            <span class="floating-icon">✨</span>
+            <h1 data-i18n="cover_title">測出你的靈魂樂器</h1>
+            <p class="subtitle" data-i18n="cover_sub">
+                你在管樂團裡會是什麼擔當？<br /> 5 題找出最適合你的本命樂器！
+            </p>
+            <button class="btn-primary" id="startBtn" data-i18n="cover_btn">開始測驗 →</button>
+            <div class="footer-note">
+                <span data-i18n="footer_music">🎵 澳大管樂團 ・ 趣味小測驗</span><br />
+                <span class="disclaimer" data-i18n="footer_disclaimer">｜此測驗僅為娛樂用途，結果僅供參考｜</span>
+            </div>
+        </div>
+
+        <!-- ===== Q1 ~ Q5 由 JS 動態產生 ===== -->
+        <div id="questionContainer"></div>
+
+        <!-- ===== 結果頁 ===== -->
+        <div class="page" id="page-result">
+            <div class="progress-area">
+                <div class="step-dots" id="resultDots"></div>
+                <span class="q-counter" data-i18n="result_label">✨ 結果</span>
+            </div>
+            <h2 data-i18n="result_title">你的靈魂樂器是...</h2>
+            <div class="result-box" id="resultContent"></div>
+            <button class="btn-primary" id="goToCallBtn" data-i18n="result_btn">下一步 → 了解加入方式</button>
+        </div>
+
+        <!-- ===== 報名呼籲 ===== -->
+        <div class="page" id="page-call">
+            <span class="floating-icon">🎵</span>
+            <h2 data-i18n="call_title">找到你的本命樂器了嗎？</h2>
+            <p class="body-text" data-i18n="call_sub">
+                無論你是哪一種性格，<strong class="highlight-orange">澳大管樂團</strong> 都有屬於你的位置！<br />
+                加入我們，一起創造回憶吧！
+            </p>
+            <div class="action-group">
+                <a href="#" class="btn-primary" id="signupBtn" data-i18n="call_signup">📝 點我立即報名</a>
+                <a href="#" class="btn-secondary" id="igBtn" data-i18n="call_ig">📸 追蹤我們的 IG </a>
+            </div>
+            <div class="footer-note">
+                <span data-i18n="footer_music2">✨ 期待在樂團中遇見你</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ================================================================
+        //  1. 語言資源 (中 / 英) — 新增頁腳翻譯
+        // ================================================================
+        const LANG = {
+            zh: {
+                langLabel: '中文',
+                cover_title: '測出你的靈魂樂器',
+                cover_sub: '你在管樂團裡會是什麼擔當？<br /> 5 題找出最適合你的本命樂器！',
+                cover_btn: '開始測驗 →',
+                result_label: '✨ 結果',
+                result_title: '你的靈魂樂器是...',
+                result_btn: '下一步 → 了解加入方式',
+                call_title: '找到你的本命樂器了嗎？',
+                call_sub: '無論你是哪一種性格，<strong class="highlight-orange">澳大管樂團</strong> 都有屬於你的位置！<br />加入我們，一起創造回憶吧！',
+                call_signup: '📝 點我立即報名',
+                call_ig: '📸 追蹤我們的 IG ',
+                footer_music: '🎵 澳大管樂團 ・ 趣味小測驗',
+                footer_disclaimer: '｜此測驗僅為娛樂用途，結果僅供參考｜',
+                footer_music2: '✨ 期待在樂團中遇見你',
+                questions: [{
+                    q: '在團隊專案中，你通常扮演什麼角色？',
+                    opts: [
+                        '站第一線的領導者或簡報發表者',
+                        '負責潤飾內容、注意細節的美化高手',
+                        '默默支撐大家、提供穩定後援的基石',
+                        '隨機應變、靈活調和氣氛的開心果'
+                    ]
+                }, {
+                    q: '放假時，你最喜歡的放鬆方式是？',
+                    opts: [
+                        '跟朋友去熱鬧的地方聚會、拍照打卡',
+                        '自己看書、聽音樂、享受質感時光',
+                        '窩在家裡，給自己滿滿的安全感',
+                        '隨興出門，探索沒去過的小店或展覽'
+                    ]
+                }, {
+                    q: '遇到突發狀況時，你的第一反應是？',
+                    opts: [
+                        '直面問題，快速下達決策',
+                        '冷靜分析，尋找最優解法',
+                        '先安撫大家情緒，保持團體穩定',
+                        '換個角度思考，用出其不意的方法解決'
+                    ]
+                }, {
+                    q: '收到負面回饋或批評時，你通常會？',
+                    opts: [
+                        '正面迎擊，直接改善問題',
+                        '仔細分析背後的真正原因',
+                        '情緒穩定地接受，照顧周圍氣氛',
+                        '用幽默感化解，找到創意解法'
+                    ]
+                }, {
+                    q: '面對全新的挑戰或任務時，你習慣？',
+                    opts: [
+                        '率先跳出來嘗試，帶動大家',
+                        '先研究透徹再行動，確保萬無一失',
+                        '跟著大家步伐，默默支援配合',
+                        '跟著直覺走，隨時調整策略'
+                    ]
+                }]
+            },
+            en: {
+                langLabel: 'English',
+                cover_title: 'Discover Your Soul Instrument',
+                cover_sub: 'What role would you play in a wind band?<br /> 5 questions to find your perfect match!',
+                cover_btn: 'Start Quiz →',
+                result_label: '✨ Result',
+                result_title: 'Your Soul Instrument is...',
+                result_btn: 'Next → Join Us',
+                call_title: 'Found your instrument?',
+                call_sub: 'No matter which personality you are, <strong class="highlight-orange">UM Symphonic Band</strong> has a place for you!<br />Join us and create memories together!',
+                call_signup: '📝 Fill in Recruitment Form',
+                call_ig: '📸 Follow us on IG',
+                footer_music: '🎵 UM Symphonic Band · Fun Quiz',
+                footer_disclaimer: '｜For entertainment purposes only｜',
+                footer_music2: '✨ See you in the band!',
+                questions: [{
+                    q: 'In a team project, what role do you usually play?',
+                    opts: [
+                        'Front-line leader or presenter',
+                        'Detail-oriented polisher and editor',
+                        'Stable supporter providing solid backup',
+                        'Flexible mood maker who adapts quickly'
+                    ]
+                }, {
+                    q: 'How do you like to relax on your days off?',
+                    opts: [
+                        'Hang out with friends, take photos, enjoy the buzz',
+                        'Stay home reading, listening to music, enjoying me-time',
+                        'Cozy up at home, feeling safe and secure',
+                        'Explore new shops or exhibitions on a whim'
+                    ]
+                }, {
+                    q: 'When an emergency occurs, what\'s your first reaction?',
+                    opts: [
+                        'Face it head-on and make quick decisions',
+                        'Stay calm, analyze, and find the best solution',
+                        'Soothe everyone first to keep the team stable',
+                        'Think outside the box and solve it creatively'
+                    ]
+                }, {
+                    q: 'When receiving negative feedback or criticism, you usually:',
+                    opts: [
+                        'Tackle it directly and improve immediately',
+                        'Analyze the root cause carefully',
+                        'Accept it calmly while caring for team morale',
+                        'Defuse with humor and find a creative fix'
+                    ]
+                }, {
+                    q: 'When facing a brand new challenge, you tend to:',
+                    opts: [
+                        'Jump in first and lead the way',
+                        'Research thoroughly before acting',
+                        'Follow the team and provide steady support',
+                        'Trust your instinct and adapt as you go'
+                    ]
+                }]
+            }
+        };
+
+        // ================================================================
+        //  2. 結果資料 (不變)
+        // ================================================================
+        const RESULTS = {
+            A: {
+                icon: '✨',
+                title_zh: '耀眼高音組',
+                title_en: 'Shining High Brass',
+                subtitle_zh: '小號 / 薩克斯風',
+                subtitle_en: 'Trumpet / Saxophone',
+                traits_zh: '充滿自信、有領導力、自帶光芒！',
+                traits_en: 'Confident, charismatic, and born to shine!',
+                match_zh: '樂團中的旋律焦點，舞台上最靚的仔就是你！',
+                match_en: 'You\'re the melodic focus of the band, the star on stage!'
+            },
+            B: {
+                icon: '🌸',
+                title_zh: '優雅靈巧組',
+                title_en: 'Elegant & Agile',
+                subtitle_zh: '長笛 / 單簧管 / 雙簧管',
+                subtitle_en: 'Flute / Clarinet / Oboe',
+                traits_zh: '細心敏銳、追求完美、具有藝術氣質。',
+                traits_en: 'Meticulous, perfectionist, and artistically gifted.',
+                match_zh: '負責快速繁複的華麗句法，樂團的氣質擔當！',
+                match_en: 'You handle rapid, intricate passages—the band\'s elegant soul!'
+            },
+            C: {
+                icon: '🛡️',
+                title_zh: '堅實後盾組',
+                title_en: 'Solid Foundation',
+                subtitle_zh: '低音號 / 上低音號 / 打擊樂',
+                subtitle_en: 'Tuba / Euphonium / Percussion',
+                traits_zh: '沉穩靠譜、注重團隊、給人無比的安全感。',
+                traits_en: 'Steady, reliable, and gives everyone a sense of security.',
+                match_zh: '掌控全團節奏與低音重心，沒有你樂團就散了！',
+                match_en: 'You control the rhythm and bass—without you, the band falls apart!'
+            },
+            D: {
+                icon: '🌊',
+                title_zh: '溫柔調和組',
+                title_en: 'Warm Harmonizer',
+                subtitle_zh: '法國號 / 長號',
+                subtitle_en: 'French Horn / Trombone',
+                traits_zh: '隨和彈性、善於溝通、富具幽默感與包容力。',
+                traits_en: 'Flexible, communicative, humorous, and inclusive.',
+                match_zh: '穿梭在高低音之間的完美橋梁，不可或缺的靈魂人物！',
+                match_en: 'The perfect bridge between high and low voices—an indispensable soul!'
+            }
+        };
+
+        // ================================================================
+        //  3. 全域狀態
+        // ================================================================
+        let currentLang = 'zh';
+        let currentPage = 'cover';
+        let answers = { 1: null, 2: null, 3: null, 4: null, 5: null };
+        const TOTAL_QS = 5;
+
+        const pages = {
+            cover: document.getElementById('page-cover'),
+            result: document.getElementById('page-result'),
+            call: document.getElementById('page-call')
+        };
+        const questionContainer = document.getElementById('questionContainer');
+
+        // ================================================================
+        //  4. 動態背景 (暖心粒子 - 大尺寸、低數量)
+        // ================================================================
+        (function initWarmBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            let particles = [];
+            const COUNT = 20; // 數量減少
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() { this.reset(); }
+                reset() {
+                    this.x = Math.random() * W;
+                    this.y = Math.random() * H;
+                    this.size = 60 + Math.random() * 80; // 尺寸大幅增加 (60~140px)
+                    this.speedX = (Math.random() - 0.5) * 0.2;
+                    this.speedY = (Math.random() - 0.5) * 0.2;
+                    this.opacity = 0.15 + Math.random() * 0.25;
+                    this.pulse = Math.random() * Math.PI * 2;
+                    this.pulseSpeed = 0.006 + Math.random() * 0.01;
+                    const colors = [
+                        'rgba(255, 182, 193, ',
+                        'rgba(255, 204, 128, ',
+                        'rgba(144, 202, 249, ',
+                        'rgba(206, 147, 216, '
+                    ];
+                    this.colorBase = colors[Math.floor(Math.random() * colors.length)];
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.pulse += this.pulseSpeed;
+                    if (this.x < 0 || this.x > W) this.speedX *= -1;
+                    if (this.y < 0 || this.y > H) this.speedY *= -1;
+                    const alpha = this.opacity * (0.8 + 0.2 * Math.sin(this.pulse));
+                    return alpha;
+                }
+                draw(alpha) {
+                    // 只用光暈，不加實心圓點，更柔和
+                    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                    grad.addColorStop(0, this.colorBase + (alpha * 0.8) + ')');
+                    grad.addColorStop(0.5, this.colorBase + (alpha * 0.4) + ')');
+                    grad.addColorStop(1, this.colorBase + '0)');
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < COUNT; i++) {
+                particles.push(new Particle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, W, H);
+                const grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+                grad.addColorStop(0, '#fdf6f0');
+                grad.addColorStop(0.4, '#f0f4fa');
+                grad.addColorStop(1, '#e8edf5');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                // 極淡連線 (降低出現頻率)
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 160 && Math.random() < 0.3) {
+                            const alpha = 0.04 * (1 - dist / 160);
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(255, 180, 150, ${alpha})`;
+                            ctx.lineWidth = 1.0;
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                for (const p of particles) {
+                    const alpha = p.update();
+                    p.draw(alpha);
+                }
+
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                resize();
+                for (const p of particles) {
+                    p.x = Math.random() * W;
+                    p.y = Math.random() * H;
+                }
+            });
+        })();
+
+        // ================================================================
+        //  5. 渲染題目
+        // ================================================================
+        function renderQuestions() {
+            questionContainer.innerHTML = '';
+            const langData = LANG[currentLang];
+            const qs = langData.questions;
+
+            for (let i = 0; i < qs.length; i++) {
+                const idx = i + 1;
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page';
+                pageDiv.id = `page-q${idx}`;
+
+                const progress = document.createElement('div');
+                progress.className = 'progress-area';
+                const dots = document.createElement('div');
+                dots.className = 'step-dots';
+                for (let d = 1; d <= TOTAL_QS; d++) {
+                    const dot = document.createElement('span');
+                    dot.className = 'step-dot' + (d === idx ? ' active' : '');
+                    if (d < idx) dot.classList.add('done');
+                    dots.appendChild(dot);
+                }
+                const counter = document.createElement('span');
+                counter.className = 'q-counter';
+                counter.textContent = `Q${idx} / ${TOTAL_QS}`;
+                progress.appendChild(dots);
+                progress.appendChild(counter);
+                pageDiv.appendChild(progress);
+
+                const qLabel = document.createElement('div');
+                qLabel.className = 'q-label';
+                qLabel.textContent = `Q${idx}`;
+                pageDiv.appendChild(qLabel);
+
+                const title = document.createElement('h2');
+                title.textContent = qs[i].q;
+                pageDiv.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                const letters = ['A', 'B', 'C', 'D'];
+                qs[i].opts.forEach((opt, oi) => {
+                    const card = document.createElement('div');
+                    card.className = 'option-card';
+                    card.dataset.q = idx;
+                    card.dataset.value = letters[oi];
+                    card.innerHTML = `
+                        <span class="letter">${letters[oi]}</span>
+                        <span class="text">${opt}</span>
+                    `;
+                    grid.appendChild(card);
+                });
+                pageDiv.appendChild(grid);
+
+                questionContainer.appendChild(pageDiv);
+            }
+
+            // 重新綁定選項事件
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const q = parseInt(this.dataset.q);
+                    const value = this.dataset.value;
+                    answers[q] = value;
+
+                    // 更新進度點
+                    const currentPageEl = document.getElementById(`page-q${q}`);
+                    const dots = currentPageEl.querySelectorAll('.step-dot');
+                    dots.forEach((dot, idx) => {
+                        if (idx < q) dot.classList.add('done');
+                        if (idx === q - 1) dot.classList.add('active');
+                    });
+
+                    if (q < TOTAL_QS) {
+                        showPage(`q${q+1}`);
+                    } else {
+                        showResult();
+                    }
+                });
+            });
+        }
+
+        // ================================================================
+        //  6. 頁面切換
+        // ================================================================
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(`page-${id}`);
+            if (target) target.classList.add('active');
+            currentPage = id;
+        }
+
+        // ================================================================
+        //  7. 計算結果
+        // ================================================================
+        function showResult() {
+            const count = { A: 0, B: 0, C: 0, D: 0 };
+            for (let i = 1; i <= TOTAL_QS; i++) {
+                const val = answers[i];
+                if (val && count[val] !== undefined) count[val]++;
+            }
+
+            let maxKey = 'A';
+            let maxVal = count['A'];
+            ['B', 'C', 'D'].forEach(key => {
+                if (count[key] > maxVal) {
+                    maxVal = count[key];
+                    maxKey = key;
+                }
+            });
+
+            const result = RESULTS[maxKey];
+            const container = document.getElementById('resultContent');
+            const isZh = currentLang === 'zh';
+
+            container.innerHTML = `
+                <span class="big-icon">${result.icon}</span>
+                <div class="result-title">${isZh ? result.title_zh : result.title_en}</div>
+                <div class="result-sub">${isZh ? result.subtitle_zh : result.subtitle_en}</div>
+                <div class="result-traits">
+                    <div class="label">🧠 ${isZh ? '性格特質' : 'Personality Traits'}</div>
+                    <div class="value">${isZh ? result.traits_zh : result.traits_en}</div>
+                </div>
+                <div class="result-traits" style="margin-top:8px;">
+                    <div class="label">🎯 ${isZh ? '樂器匹配' : 'Instrument Match'}</div>
+                    <div class="value">${isZh ? result.match_zh : result.match_en}</div>
+                </div>
+                <div style="margin-top:14px; font-size:0.85rem; color:#5a7f94; text-align:center;">
+                    ${isZh ? '你的選擇傾向' : 'Your tendency'}：A(${count.A}) · B(${count.B}) · C(${count.C}) · D(${count.D})
+                </div>
+            `;
+
+            const resultDots = document.getElementById('resultDots');
+            resultDots.innerHTML = '';
+            for (let d = 1; d <= TOTAL_QS; d++) {
+                const dot = document.createElement('span');
+                dot.className = 'step-dot done';
+                resultDots.appendChild(dot);
+            }
+
+            showPage('result');
+        }
+
+        // ================================================================
+        //  8. 語言切換 (包含頁腳更新)
+        // ================================================================
+        function switchLanguage() {
+            currentLang = (currentLang === 'zh') ? 'en' : 'zh';
+            document.getElementById('langSwitch').textContent = currentLang === 'zh' ? '🌐 English' : '🌐 中文';
+
+            // 更新所有 data-i18n 的靜態文字
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                const val = LANG[currentLang][key];
+                if (val) {
+                    if (key === 'cover_sub' || key === 'call_sub') {
+                        el.innerHTML = val;
+                    } else {
+                        el.textContent = val;
+                    }
+                }
+            });
+
+            // 重新渲染題目 (動態區域)
+            const qPages = document.querySelectorAll('#questionContainer .page');
+            qPages.forEach(p => p.remove());
+            for (let i = 1; i <= TOTAL_QS; i++) answers[i] = null;
+            renderQuestions();
+            showPage('cover');
+        }
+
+        document.getElementById('langSwitch').addEventListener('click', switchLanguage);
+
+        // ================================================================
+        //  9. 事件綁定
+        // ================================================================
+        document.getElementById('startBtn').addEventListener('click', () => {
+            for (let i = 1; i <= TOTAL_QS; i++) answers[i] = null;
+            renderQuestions();
+            showPage('q1');
+        });
+
+        document.getElementById('goToCallBtn').addEventListener('click', () => {
+            showPage('call');
+        });
+
+        document.getElementById('signupBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open('https://umac.questionpro.com.au/a/TakeSurvey?tt=xHHg7UGKBeg%3D', '_blank');
+        });
+
+        document.getElementById('igBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open('https://www.instagram.com/um_symphonicband/', '_blank');
+        });
+
+        // ================================================================
+        //  10. 初始化
+        // ================================================================
+        renderQuestions();
+        showPage('cover');
+        console.log('✨ 靈魂樂器測驗 (超大粒子+減少數量+修正按鈕+免責不隔行) 已載入！');
+    </script>
+
+</body>
+</html>
